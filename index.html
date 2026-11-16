@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>fabu001 — Software, Training &amp; IT Solutions</title>
+    <meta
+      name="description"
+      content="fabu001 software engineering studio, professional tech training cohorts, and IT infrastructure solutions in Nyange, Rwanda."
+    />
+    <meta property="og:title" content="fabu001 — Software, Training &amp; IT Solutions" />
+    <meta
+      property="og:description"
+      content="fabu001 software engineering studio, professional tech training cohorts, and IT infrastructure solutions in Nyange, Rwanda."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("fabu001_theme");
+          var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          if (saved === "dark" || (!saved && prefersDark)) {
+            document.documentElement.classList.add("dark");
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-[#2563EB] selection:text-white transition-colors duration-200">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
