@@ -18,6 +18,7 @@ import {
   TECHNICAL_SKILLS,
   IMPACT_METRICS,
   CREDENTIALS,
+  STUDIO_PHONE_DISPLAY,
   buildWhatsAppUrl,
 } from "../data/siteData";
 import { useLanguage } from "../i18n/LanguageContext";
@@ -60,7 +61,7 @@ export function AboutSection() {
     const cvText = [
       "FABU001 — SOFTWARE ENGINEER & IT INSTRUCTOR",
       "Studio: fabu001 · Nyange, Rwanda",
-      "Email: hello@fabu001.dev | Direct: +250 795 547 233",
+      `Email: hello@fabu001.dev | Direct: ${STUDIO_PHONE_DISPLAY}`,
       "",
       "CORE EXPERIENCE",
       "- Founder & Lead Engineer, fabu001 Studio (2021 — Present)",

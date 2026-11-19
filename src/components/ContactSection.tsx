@@ -1,14 +1,21 @@
 import { useState, useEffect, type FormEvent } from "react";
-import { Calendar, Mail, Phone, CheckCircle2, Send, MessageCircle } from "lucide-react";
-import { buildWhatsAppUrl } from "../data/siteData";
+import { Calendar, Mail, Phone, CheckCircle2, Send, MessageCircle, Sparkles, Loader2 } from "lucide-react";
+import {
+  buildWhatsAppUrl,
+  STUDIO_PHONE_DISPLAY,
+  STUDIO_PHONE_TEL,
+} from "../data/siteData";
 import { useLanguage } from "../i18n/LanguageContext";
+import { useToast } from "./SuccessToast";
+import { requestDraftBrief } from "../services/aiClient";
 
 interface ContactSectionProps {
   prefillMessage: string;
 }
 
 export function ContactSection({ prefillMessage }: ContactSectionProps) {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
+  const { showSuccessToast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -16,6 +23,7 @@ export function ContactSection({ prefillMessage }: ContactSectionProps) {
   });
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [draftingBrief, setDraftingBrief] = useState(false);
 
   useEffect(() => {
     if (prefillMessage) {
@@ -41,6 +49,10 @@ export function ContactSection({ prefillMessage }: ContactSectionProps) {
     }
     setError("");
     setSubmitted(true);
+    showSuccessToast(
+      t.toast.contactTitle,
+      t.toast.contactDesc(formData.name.trim())
+    );
   };
 
   const handleBookMeeting = () => {
@@ -89,7 +101,7 @@ export function ContactSection({ prefillMessage }: ContactSectionProps) {
 
               <div className="space-y-5 mb-8">
                 <a
-                  href="tel:+250795547233"
+                  href={STUDIO_PHONE_TEL}
                   className="flex items-start gap-3.5 group"
                 >
                   <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-blue-400 shrink-0">
@@ -100,7 +112,7 @@ export function ContactSection({ prefillMessage }: ContactSectionProps) {
                       {t.contact.directLine}
                     </span>
                     <span className="text-base font-semibold text-white group-hover:text-blue-400 transition-colors tabular-nums">
-                      +250 795 547 233
+                      {STUDIO_PHONE_DISPLAY}
                     </span>
                   </div>
                 </a>
@@ -231,12 +243,56 @@ export function ContactSection({ prefillMessage }: ContactSectionProps) {
                   </div>
 
                   <div>
-                    <label
-                      htmlFor="contact-message"
-                      className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
-                    >
-                      {t.contact.projectBrief}
-                    </label>
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                      <label
+                        htmlFor="contact-message"
+                        className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+                      >
+                        {t.contact.projectBrief}
+                      </label>
+                      <button
+                        type="button"
+                        disabled={draftingBrief}
+                        onClick={async () => {
+                          if (!formData.message.trim()) {
+                            setError(t.ai.draftBriefHint);
+                            return;
+                          }
+                          setError("");
+                          setDraftingBrief(true);
+                          try {
+                            const result = await requestDraftBrief({
+                              roughIdea: formData.message,
+                              lang,
+                            });
+                            setFormData((prev) => ({
+                              ...prev,
+                              message: result.refinedBrief,
+                            }));
+                          } catch (err) {
+                            setError(
+                              err instanceof Error
+                                ? err.message
+                                : "Could not polish brief."
+                            );
+                          } finally {
+                            setDraftingBrief(false);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        {draftingBrief ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3 h-3" />
+                        )}
+                        <span>
+                          {draftingBrief
+                            ? t.ai.draftBriefWorking
+                            : t.ai.draftBriefBtn}
+                        </span>
+                      </button>
+                    </div>
                     <textarea
                       id="contact-message"
                       required

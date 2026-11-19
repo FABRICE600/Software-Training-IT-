@@ -15,6 +15,7 @@ import {
 import {
   SHOP_PRODUCTS,
   buildWhatsAppUrl,
+  buildWhatsAppPaymentUrl,
   type ShopProduct,
 } from "../data/siteData";
 import { ImageWithFallback } from "./ImageWithFallback";
@@ -158,6 +159,7 @@ export function ShopDrawer({
   open: boolean;
   onClose: () => void;
 }) {
+  const { t } = useLanguage();
   const [cart, setCart] = useState<CartEntry[]>([]);
   const [checkedOut, setCheckedOut] = useState(false);
 
@@ -269,22 +271,23 @@ export function ShopDrawer({
             <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100 space-y-2">
               <div className="flex items-center gap-2 font-bold text-sm">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Order Request Ready (${totalUsd})</span>
+                <span>{t.shop.checkoutTitle(totalUsd)}</span>
               </div>
               <p className="text-xs text-emerald-800 dark:text-emerald-300">
-                Complete fulfillment via WhatsApp or request an invoice link.
+                {t.shop.checkoutDesc}
               </p>
               <a
-                href={buildWhatsAppUrl(
-                  `Hi fabu001, I'd like to purchase from fabu001 Shop:\n${cart
+                href={buildWhatsAppPaymentUrl(
+                  `Hi fabu001, I'd like to pay via WhatsApp (0792752832) for my fabu001 Shop order:\n${cart
                     .map((c) => `- ${c.product.name} x${c.qty} ($${c.product.priceUsd * c.qty})`)
                     .join("\n")}\nTotal: $${totalUsd}`
                 )}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block w-full text-center py-2.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold"
+                className="inline-flex items-center justify-center gap-2 w-full text-center py-2.5 px-4 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-colors"
               >
-                Complete Purchase via WhatsApp
+                <MessageCircle className="w-4 h-4" aria-hidden="true" />
+                <span>{t.shop.payWhatsapp}</span>
               </a>
             </div>
           ) : cart.length > 0 ? (

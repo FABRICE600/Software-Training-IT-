@@ -1,8 +1,25 @@
-import { useState, useMemo } from "react";
-import { ArrowRight, X, User, Calendar, Clock } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import {
+  ArrowRight,
+  X,
+  User,
+  Calendar,
+  Clock,
+  Sparkles,
+  Volume2,
+  Square,
+  Check,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import { BLOG_POSTS, type BlogPost } from "../data/siteData";
 import { useLanguage } from "../i18n/LanguageContext";
 import { ImageWithFallback } from "./ImageWithFallback";
+import {
+  requestBlogSummary,
+  requestTextToSpeech,
+  type BlogSummaryResult,
+} from "../services/aiClient";
 
 const WORDS_PER_MINUTE = 200;
 
@@ -24,8 +41,16 @@ export function BlogSection({
   selectedPostId,
   onSelectPostId,
 }: BlogSectionProps) {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const [internalPostId, setInternalPostId] = useState<number | null>(null);
+  const [summaryByPost, setSummaryByPost] = useState<
+    Record<string, BlogSummaryResult>
+  >({});
+  const [summarizing, setSummarizing] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [loadingAudio, setLoadingAudio] = useState(false);
+  const [playingAudio, setPlayingAudio] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const postsWithStats = useMemo(
     () =>
@@ -39,6 +64,12 @@ export function BlogSection({
   const activePostId =
     selectedPostId !== undefined ? selectedPostId : internalPostId;
   const setActivePostId = (id: number | null) => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setPlayingAudio(false);
+    setAiError("");
     if (onSelectPostId) {
       onSelectPostId(id);
     } else {
@@ -46,8 +77,23 @@ export function BlogSection({
     }
   };
 
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
   const selectedEntry =
     postsWithStats.find((entry) => entry.post.id === activePostId) ?? null;
+  const activeSummaryKey = selectedEntry
+    ? `${selectedEntry.post.id}-${lang}`
+    : "";
+  const activeSummary = activeSummaryKey
+    ? summaryByPost[activeSummaryKey]
+    : undefined;
 
   return (
     <section
@@ -176,6 +222,154 @@ export function BlogSection({
               <p className="text-xs text-slate-500 dark:text-slate-400 pb-3 border-b border-slate-200 dark:border-slate-800 font-mono">
                 {t.blog.by} {selectedEntry.post.author}
               </p>
+
+              {/* AI Executive Summary & Voice Reader */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-[#F4F6F9] dark:bg-slate-950 p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider font-bold text-[#2563EB] dark:text-blue-400">
+                    <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+                    <span>{t.ai.blogAiTitle}</span>
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    {!activeSummary && (
+                      <button
+                        type="button"
+                        disabled={summarizing}
+                        onClick={async () => {
+                          setAiError("");
+                          setSummarizing(true);
+                          try {
+                            const res = await requestBlogSummary({
+                              title: selectedEntry.post.title,
+                              body: selectedEntry.post.body,
+                              lang,
+                            });
+                            setSummaryByPost((prev) => ({
+                              ...prev,
+                              [activeSummaryKey]: res,
+                            }));
+                          } catch (err) {
+                            setAiError(
+                              err instanceof Error
+                                ? err.message
+                                : "Could not summarize article."
+                            );
+                          } finally {
+                            setSummarizing(false);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-50 text-white text-xs font-bold cursor-pointer transition-colors"
+                      >
+                        {summarizing ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5" />
+                        )}
+                        <span>
+                          {summarizing ? t.ai.blogAiWorking : t.ai.blogAiBtn}
+                        </span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      disabled={loadingAudio}
+                      onClick={async () => {
+                        if (playingAudio) {
+                          audioRef.current?.pause();
+                          audioRef.current = null;
+                          setPlayingAudio(false);
+                          return;
+                        }
+                        setAiError("");
+                        setLoadingAudio(true);
+                        try {
+                          const textToRead = activeSummary
+                            ? `${selectedEntry.post.title}. ${activeSummary.tldr} ${activeSummary.takeaways.join(". ")}`
+                            : `${selectedEntry.post.title}. ${selectedEntry.post.excerpt} ${selectedEntry.post.body.slice(0, 2).join(" ")}`;
+                          const { audioBase64, mimeType } =
+                            await requestTextToSpeech(textToRead);
+                          const audio = new Audio(
+                            `data:${mimeType};base64,${audioBase64}`
+                          );
+                          audioRef.current = audio;
+                          setPlayingAudio(true);
+                          audio.onended = () => {
+                            setPlayingAudio(false);
+                            audioRef.current = null;
+                          };
+                          await audio.play();
+                        } catch (err) {
+                          setAiError(
+                            err instanceof Error
+                              ? err.message
+                              : "Could not play audio."
+                          );
+                          setPlayingAudio(false);
+                        } finally {
+                          setLoadingAudio(false);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 hover:border-[#2563EB] text-xs font-bold cursor-pointer disabled:opacity-50 transition-colors"
+                    >
+                      {loadingAudio ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : playingAudio ? (
+                        <Square className="w-3.5 h-3.5 fill-current" />
+                      ) : (
+                        <Volume2 className="w-3.5 h-3.5" />
+                      )}
+                      <span>
+                        {loadingAudio
+                          ? t.ai.loadingVoice
+                          : playingAudio
+                            ? t.ai.stopVoice
+                            : t.ai.listenVoice}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {aiError && (
+                  <p
+                    role="alert"
+                    className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400"
+                  >
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{aiError}</span>
+                  </p>
+                )}
+
+                {activeSummary && (
+                  <div className="space-y-2.5 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                        {t.ai.blogTldrLabel}
+                      </p>
+                      <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+                        {activeSummary.tldr}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                        {t.ai.blogTakeawaysLabel}
+                      </p>
+                      <ul className="space-y-1">
+                        {activeSummary.takeaways.map((item, i) => (
+                          <li
+                            key={i}
+                            className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300"
+                          >
+                            <Check className="w-3.5 h-3.5 text-[#2563EB] dark:text-blue-400 shrink-0 mt-0.5" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div className="space-y-4 text-sm sm:text-base text-slate-700 dark:text-slate-300 leading-relaxed">
                 {selectedEntry.post.body.map((para, idx) => (

@@ -8,10 +8,18 @@ export const IMAGES = {
   aiHealthcare: "/src/assets/images/ai_vision_healthcare_1794849800648.jpg",
 } as const;
 
-export const WHATSAPP_NUMBER = "250795547233";
+export const WHATSAPP_NUMBER = "250792752832";
+export const WHATSAPP_PAYMENT_NUMBER = "250792752832";
+export const WHATSAPP_PAYMENT_DISPLAY = "0792752832";
+export const STUDIO_PHONE_DISPLAY = "+250 792 752 832";
+export const STUDIO_PHONE_TEL = "tel:+250792752832";
 
 export function buildWhatsAppUrl(message: string): string {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
+export function buildWhatsAppPaymentUrl(message: string): string {
+  return `https://wa.me/${WHATSAPP_PAYMENT_NUMBER}?text=${encodeURIComponent(message)}`;
 }
 
 export interface PartnerOrg {

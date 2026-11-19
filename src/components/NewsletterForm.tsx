@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { useLanguage } from "../i18n/LanguageContext";
+import { useToast } from "./SuccessToast";
 
 const STORAGE_KEY = "fabu001_newsletter_emails";
 
-function getStoredEmails(): string[] {
+export function getStoredNewsletterEmails(): string[] {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
@@ -15,8 +16,38 @@ function getStoredEmails(): string[] {
   }
 }
 
+export function subscribeNewsletterEmail(
+  rawEmail: string
+): { status: "empty" | "invalid" | "subscribed" | "duplicate"; email: string } {
+  const normalized = rawEmail.trim().toLowerCase();
+  if (!normalized) {
+    return { status: "empty", email: "" };
+  }
+
+  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+  if (!isValidEmail) {
+    return { status: "invalid", email: normalized };
+  }
+
+  const existing = getStoredNewsletterEmails();
+  if (!existing.includes(normalized)) {
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify([...existing, normalized])
+      );
+    } catch {
+      // Ignore storage quota errors cleanly
+    }
+    return { status: "subscribed", email: normalized };
+  }
+
+  return { status: "duplicate", email: normalized };
+}
+
 export function NewsletterForm() {
   const { t } = useLanguage();
+  const { showSuccessToast } = useToast();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "error" | "subscribed">("idle");
   const [feedback, setFeedback] = useState("");
@@ -24,37 +55,32 @@ export function NewsletterForm() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const normalized = email.trim().toLowerCase();
-    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+    const result = subscribeNewsletterEmail(email);
 
-    if (!normalized) {
+    if (result.status === "empty") {
       setStatus("error");
       setFeedback(t.footer.newsletterEmptyErr);
       return;
     }
 
-    if (!isValidEmail) {
+    if (result.status === "invalid") {
       setStatus("error");
       setFeedback(t.footer.newsletterInvalidErr);
       return;
     }
 
-    const existing = getStoredEmails();
-    if (!existing.includes(normalized)) {
-      try {
-        window.localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify([...existing, normalized])
-        );
-      } catch {
-        // Ignore storage quota errors cleanly
-      }
+    if (result.status === "subscribed") {
       setFeedback(t.footer.newsletterSuccess);
+      showSuccessToast(t.toast.newsletterTitle, t.footer.newsletterSuccess);
     } else {
       setFeedback(t.footer.newsletterDuplicate);
+      showSuccessToast(
+        t.toast.newsletterDuplicateTitle,
+        t.footer.newsletterDuplicate
+      );
     }
 
-    setSubscribedEmail(normalized);
+    setSubscribedEmail(result.email);
     setEmail("");
     setStatus("subscribed");
   };

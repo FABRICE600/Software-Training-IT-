@@ -17,12 +17,17 @@ import { BlogSection } from "./components/BlogSection";
 import { ContactSection } from "./components/ContactSection";
 import { Footer } from "./components/Footer";
 import {
-  SupportWidget,
   ShopDrawer,
   ClientPortalModal,
 } from "./components/SupportAndShopModals";
+import {
+  AiStudioAssistant,
+  type AiStudioTab,
+} from "./components/AiStudioAssistant";
 import { FloatingSocialBar } from "./components/FloatingSocialBar";
 import { ScrollToTopButton } from "./components/ScrollToTopButton";
+import { ToastProvider } from "./components/SuccessToast";
+import { ExitIntentNewsletterModal } from "./components/ExitIntentNewsletterModal";
 import { LanguageProvider } from "./i18n/LanguageContext";
 import { ThemeProvider } from "./theme/ThemeContext";
 
@@ -48,6 +53,8 @@ export default function App() {
   const [prefillMessage, setPrefillMessage] = useState("");
   const [shopOpen, setShopOpen] = useState(false);
   const [portalOpen, setPortalOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiTab, setAiTab] = useState<AiStudioTab>("chat");
   const [highlightedServiceId, setHighlightedServiceId] = useState<number | null>(null);
   const [highlightedCourseId, setHighlightedCourseId] = useState<number | null>(null);
   const [selectedBlogPostId, setSelectedBlogPostId] = useState<number | null>(null);
@@ -127,7 +134,8 @@ export default function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <div className="min-h-screen flex flex-col bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+        <ToastProvider>
+          <div className="min-h-screen flex flex-col bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
           <Navbar
           activeSection={activeSection}
           onNavigate={scrollToSection}
@@ -140,6 +148,10 @@ export default function App() {
           onExploreCourses={() => scrollToSection("training")}
           onOpenShop={() => setShopOpen(true)}
           onOpenPortal={() => setPortalOpen(true)}
+          onOpenAi={() => {
+            setAiTab("scoper");
+            setAiOpen(true);
+          }}
         />
         <ClientsSection />
         <AboutSection />
@@ -197,10 +209,17 @@ export default function App() {
 
         <FloatingSocialBar />
         <ScrollToTopButton />
-        <SupportWidget onPrefillContact={routeToContactWithMessage} />
+        <AiStudioAssistant
+          open={aiOpen}
+          initialTab={aiTab}
+          onOpenChange={setAiOpen}
+          onPrefillContact={routeToContactWithMessage}
+        />
         <ShopDrawer open={shopOpen} onClose={() => setShopOpen(false)} />
         <ClientPortalModal open={portalOpen} onClose={() => setPortalOpen(false)} />
+        <ExitIntentNewsletterModal />
         </div>
+        </ToastProvider>
       </LanguageProvider>
     </ThemeProvider>
   );

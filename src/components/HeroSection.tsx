@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, ShoppingBag, UserCheck } from "lucide-react";
+import { ArrowRight, ShoppingBag, UserCheck, Sparkles } from "lucide-react";
 import { IMAGES } from "../data/siteData";
 import { useLanguage } from "../i18n/LanguageContext";
 import { ImageWithFallback } from "./ImageWithFallback";
@@ -9,6 +9,7 @@ interface HeroSectionProps {
   onExploreCourses: () => void;
   onOpenShop: () => void;
   onOpenPortal: () => void;
+  onOpenAi: () => void;
 }
 
 export function HeroSection({
@@ -16,6 +17,7 @@ export function HeroSection({
   onExploreCourses,
   onOpenShop,
   onOpenPortal,
+  onOpenAi,
 }: HeroSectionProps) {
   const { t } = useLanguage();
   const [portraitIndex, setPortraitIndex] = useState(0);
@@ -92,6 +94,15 @@ export function HeroSection({
                 >
                   <UserCheck className="w-3.5 h-3.5" />
                   <span>{t.hero.clientPortal}</span>
+                </button>
+                <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">/</span>
+                <button
+                  type="button"
+                  onClick={onOpenAi}
+                  className="inline-flex items-center gap-1.5 text-[#2563EB] dark:text-blue-400 hover:underline transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{t.ai.openAssistant}</span>
                 </button>
               </div>
             </div>
